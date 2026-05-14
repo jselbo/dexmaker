@@ -89,7 +89,7 @@ class JvmtiAgent {
         copiedAgent.deleteOnExit();
 
         InputStream is;
-        if (path != null) {
+        if (path != null && new File(path).isFile()) {
             is = new FileInputStream(path);
         } else {
             // findLibrary returned null — try loading from APK resources
