@@ -23,7 +23,6 @@ import org.mockito.mock.MockCreationSettings;
 import org.mockito.plugins.InlineMockMaker;
 import org.mockito.plugins.MockMaker;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 
 /**
@@ -36,7 +35,7 @@ public final class MockMakerMultiplexer implements InlineMockMaker {
     static {
         String[] potentialMockMakers = new String[] {
                 "com.android.dx.mockito.inline.InlineStaticMockMaker",
-                InlineDexmakerMockMaker.class.getName()
+                "com.android.dx.mockito.inline.InlineDexmakerMockMaker"
         };
 
         ArrayList<MockMaker> mockMakers = new ArrayList<>();
@@ -45,14 +44,10 @@ public final class MockMakerMultiplexer implements InlineMockMaker {
                 Class<? extends MockMaker> mockMakerClass = (Class<? extends MockMaker>)
                         Class.forName(potentialMockMaker);
                 mockMakers.add(mockMakerClass.getDeclaredConstructor().newInstance());
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-                    | NoSuchMethodException | InvocationTargetException e) {
-                if (potentialMockMaker.equals(InlineDexmakerMockMaker.class.getName())) {
-                    Log.e(LOG_TAG, "Could not init mockmaker " + potentialMockMaker, e);
-                } else {
-                    // Additional mock makers might not be loaded
-                    Log.e(LOG_TAG, "Could not init mockmaker " + potentialMockMaker);
-                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Could not init mockmaker " + potentialMockMaker, e);
+            } catch (Error e) {
+                Log.e(LOG_TAG, "Could not init mockmaker " + potentialMockMaker, e);
             }
         }
 
@@ -102,7 +97,17 @@ public final class MockMakerMultiplexer implements InlineMockMaker {
             }
         }
 
-        return null;
+        return new TypeMockability() {
+            @Override
+            public boolean mockable() {
+                return false;
+            }
+
+            @Override
+            public String nonMockableReason() {
+                return "No mock makers available to mock this type";
+            }
+        };
     }
 
     @Override

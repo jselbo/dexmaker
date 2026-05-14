@@ -25,7 +25,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockingDeta
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSession;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.reset;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.staticMockMarker;
-import static com.android.dx.mockito.inline.extended.ExtendedMockito.verifyZeroInteractions;
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.verifyNoInteractions;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.when;
 
 import static org.junit.Assert.assertEquals;
@@ -401,7 +401,7 @@ public class MockStatic {
         try {
             SuperClass.returnB();
             clearInvocations(staticMockMarker(SuperClass.class));
-            verifyZeroInteractions(staticMockMarker(SuperClass.class));
+            verifyNoInteractions(staticMockMarker(SuperClass.class));
         } finally {
             session.finishMocking();
         }

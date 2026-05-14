@@ -41,5 +41,5 @@ dependencies {
 
     implementation project(':dexmaker')
 
-    api 'org.mockito:mockito-core:2.28.2', { exclude group: 'net.bytebuddy' }
+    api libs.mockito.core, { exclude group: 'net.bytebuddy' }
 }

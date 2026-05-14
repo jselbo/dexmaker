@@ -30,5 +30,5 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.4.0'
     androidTestImplementation 'androidx.test:rules:1.4.0'
 
-    androidTestImplementation 'org.mockito:mockito-core:2.28.2', { exclude group: 'net.bytebuddy' }
+    androidTestImplementation libs.mockito.core, { exclude group: 'net.bytebuddy' }
 }

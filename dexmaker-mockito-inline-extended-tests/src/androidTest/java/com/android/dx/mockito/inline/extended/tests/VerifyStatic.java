@@ -30,7 +30,7 @@ import static com.android.dx.mockito.inline.extended.ExtendedMockito.mockitoSess
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.staticMockMarker;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.verifyNoMoreInteractions;
-import static com.android.dx.mockito.inline.extended.ExtendedMockito.verifyZeroInteractions;
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.verifyNoInteractions;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.when;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -180,7 +180,7 @@ public class VerifyStatic {
         MockitoSession session = mockitoSession().mockStatic(EchoClass.class).startMocking();
         try {
             EchoClass.echo("marco!");
-            verifyZeroInteractions(staticMockMarker(EchoClass.class));
+            verifyNoInteractions(staticMockMarker(EchoClass.class));
             fail();
         } finally {
             session.finishMocking();
