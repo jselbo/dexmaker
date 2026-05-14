@@ -80,7 +80,7 @@ class JvmtiAgent {
     private static String resolveAgentPath(ClassLoader cl) throws IOException {
         String path = ((BaseDexClassLoader) cl).findLibrary("dexmakerjvmtiagent");
 
-        if (path != null && !path.contains("=") && !path.contains("!")) {
+        if (path != null && !path.contains("=")) {
             return path;
         }
 

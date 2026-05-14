@@ -94,11 +94,12 @@ class ClassTransformer {
      *              mocked or not.
      */
     ClassTransformer(JvmtiAgent agent, Class dispatcherClass,
-                     Map<Object, InvocationHandlerAdapter> mocks) {
+                     Map<Object, InvocationHandlerAdapter> mocks,
+                     ThreadLocal<Map<Object, InvocationHandlerAdapter>> singletonMocks) {
         this.agent = agent;
         mockedTypes = Collections.synchronizedSet(new HashSet<Class<?>>());
         identifier = String.valueOf(System.identityHashCode(this));
-        MockMethodAdvice advice = new MockMethodAdvice(mocks);
+        MockMethodAdvice advice = new MockMethodAdvice(mocks, singletonMocks);
 
         try {
             dispatcherClass.getMethod("set", String.class, Object.class).invoke(null, identifier,

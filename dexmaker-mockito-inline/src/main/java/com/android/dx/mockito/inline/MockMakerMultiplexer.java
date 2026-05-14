@@ -18,11 +18,13 @@ package com.android.dx.mockito.inline;
 
 import android.util.Log;
 
+import org.mockito.exceptions.base.MockitoException;
 import org.mockito.invocation.MockHandler;
 import org.mockito.mock.MockCreationSettings;
 import org.mockito.plugins.InlineMockMaker;
 import org.mockito.plugins.MockMaker;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 
 /**
@@ -35,7 +37,7 @@ public final class MockMakerMultiplexer implements InlineMockMaker {
     static {
         String[] potentialMockMakers = new String[] {
                 "com.android.dx.mockito.inline.InlineStaticMockMaker",
-                "com.android.dx.mockito.inline.InlineDexmakerMockMaker"
+                InlineDexmakerMockMaker.class.getName()
         };
 
         ArrayList<MockMaker> mockMakers = new ArrayList<>();
@@ -44,10 +46,14 @@ public final class MockMakerMultiplexer implements InlineMockMaker {
                 Class<? extends MockMaker> mockMakerClass = (Class<? extends MockMaker>)
                         Class.forName(potentialMockMaker);
                 mockMakers.add(mockMakerClass.getDeclaredConstructor().newInstance());
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "Could not init mockmaker " + potentialMockMaker, e);
-            } catch (Error e) {
-                Log.e(LOG_TAG, "Could not init mockmaker " + potentialMockMaker, e);
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+                    | NoSuchMethodException | InvocationTargetException e) {
+                if (potentialMockMaker.equals(InlineDexmakerMockMaker.class.getName())) {
+                    Log.e(LOG_TAG, "Could not init mockmaker " + potentialMockMaker, e);
+                } else {
+                    // Additional mock makers might not be loaded
+                    Log.e(LOG_TAG, "Could not init mockmaker " + potentialMockMaker);
+                }
             }
         }
 
@@ -132,5 +138,19 @@ public final class MockMakerMultiplexer implements InlineMockMaker {
             InlineMockMaker inlineMockMaker = (InlineMockMaker) mockMaker;
             inlineMockMaker.clearAllMocks();
         }
+    }
+
+    @Override
+    public <T> SingletonMockControl<T> createSingletonMock(
+            T instance, MockCreationSettings<T> settings, MockHandler handler) {
+        for (MockMaker mockMaker : MOCK_MAKERS) {
+            try {
+                return mockMaker.createSingletonMock(instance, settings, handler);
+            } catch (MockitoException ignored) {
+            }
+        }
+        throw new MockitoException(
+                "The used MockMaker MockMakerMultiplexer does not support the creation of "
+                + "singleton mocks\n\nEnsure your MockMaker implementation supports this feature.");
     }
 }

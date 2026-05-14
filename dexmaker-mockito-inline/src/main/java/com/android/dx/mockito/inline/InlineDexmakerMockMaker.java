@@ -44,8 +44,10 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -167,6 +169,9 @@ public final class InlineDexmakerMockMaker implements InlineMockMaker {
      */
     private final Map<Object, InvocationHandlerAdapter> mocks;
 
+    private final ThreadLocal<Map<Object, InvocationHandlerAdapter>> singletonMocks =
+            new ThreadLocal<>();
+
     /**
      * Class doing the actual byte code transformation.
      */
@@ -185,7 +190,7 @@ public final class InlineDexmakerMockMaker implements InlineMockMaker {
         }
 
         mocks = new MockMap();
-        classTransformer = new ClassTransformer(AGENT, DISPATCHER_CLASS, mocks);
+        classTransformer = new ClassTransformer(AGENT, DISPATCHER_CLASS, mocks, singletonMocks);
     }
 
     /**
@@ -362,6 +367,54 @@ public final class InlineDexmakerMockMaker implements InlineMockMaker {
         return adapter != null ? adapter.getHandler() : null;
     }
 
+    @Override
+    public <T> SingletonMockControl<T> createSingletonMock(T instance, MockCreationSettings<T> settings, MockHandler handler) {
+        Class<T> typeToMock = settings.getTypeToMock();
+        Set<Class<?>> interfacesSet = settings.getExtraInterfaces();
+
+        classTransformer.mockClass(MockFeatures.withMockFeatures(typeToMock, interfacesSet));
+
+        InvocationHandlerAdapter handlerAdapter = new InvocationHandlerAdapter(handler);
+
+        return new InlineSingletonMockControl<>(instance, handlerAdapter);
+    }
+
+    private class InlineSingletonMockControl<T> implements SingletonMockControl<T> {
+        private final T instance;
+        private final InvocationHandlerAdapter handlerAdapter;
+
+        InlineSingletonMockControl(T instance, InvocationHandlerAdapter handlerAdapter) {
+            this.instance = instance;
+            this.handlerAdapter = handlerAdapter;
+        }
+
+        @Override
+        public T getInstance() {
+            return instance;
+        }
+
+        @Override
+        public void enable() {
+            Map<Object, InvocationHandlerAdapter> singletons = singletonMocks.get();
+            if (singletons == null) {
+                singletons = new IdentityHashMap<>();
+                singletonMocks.set(singletons);
+            }
+            singletons.put(instance, handlerAdapter);
+        }
+
+        @Override
+        public void disable() {
+            Map<Object, InvocationHandlerAdapter> singletons = singletonMocks.get();
+            if (singletons != null) {
+                singletons.remove(instance);
+                if (singletons.isEmpty()) {
+                    singletonMocks.remove();
+                }
+            }
+        }
+    }
+
     /**
      * Get the {@link InvocationHandlerAdapter} registered for a mock.
      *
@@ -374,7 +427,14 @@ public final class InlineDexmakerMockMaker implements InlineMockMaker {
             return null;
         }
 
-        return mocks.get(instance);
+        InvocationHandlerAdapter adapter = mocks.get(instance);
+        if (adapter == null) {
+            Map<Object, InvocationHandlerAdapter> singletons = singletonMocks.get();
+            if (singletons != null) {
+                adapter = singletons.get(instance);
+            }
+        }
+        return adapter;
     }
 
     /**

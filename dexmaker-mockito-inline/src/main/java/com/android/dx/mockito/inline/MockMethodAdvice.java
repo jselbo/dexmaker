@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
  */
 class MockMethodAdvice {
     private final Map<Object, InvocationHandlerAdapter> interceptors;
+    private final ThreadLocal<Map<Object, InvocationHandlerAdapter>> singletonInterceptors;
 
     /** Pattern to decompose a instrumentedMethodWithTypeAndSignature */
     private final Pattern methodPattern = Pattern.compile("(.*)#(.*)\\((.*)\\)");
@@ -32,8 +33,21 @@ class MockMethodAdvice {
     @SuppressWarnings("ThreadLocalUsage")
     private final SelfCallInfo selfCallInfo = new SelfCallInfo();
 
-    MockMethodAdvice(Map<Object, InvocationHandlerAdapter> interceptors) {
+    MockMethodAdvice(Map<Object, InvocationHandlerAdapter> interceptors,
+                     ThreadLocal<Map<Object, InvocationHandlerAdapter>> singletonInterceptors) {
         this.interceptors = interceptors;
+        this.singletonInterceptors = singletonInterceptors;
+    }
+
+    private InvocationHandlerAdapter getInterceptor(Object instance) {
+        InvocationHandlerAdapter interceptor = interceptors.get(instance);
+        if (interceptor == null && singletonInterceptors != null) {
+            Map<Object, InvocationHandlerAdapter> singletons = singletonInterceptors.get();
+            if (singletons != null) {
+                interceptor = singletons.get(instance);
+            }
+        }
+        return interceptor;
     }
 
     /**
@@ -225,7 +239,7 @@ class MockMethodAdvice {
      */
     @SuppressWarnings("unused")
     public Callable<?> handle(Object instance, Method origin, Object[] arguments) throws Throwable {
-        InvocationHandlerAdapter interceptor = interceptors.get(instance);
+        InvocationHandlerAdapter interceptor = getInterceptor(instance);
         if (interceptor == null) {
             return null;
         }
@@ -242,7 +256,7 @@ class MockMethodAdvice {
      * @return {@code true} iff the instance is a mock
      */
     public boolean isMock(Object instance) {
-        return interceptors.containsKey(instance);
+        return getInterceptor(instance) != null;
     }
 
     /**
